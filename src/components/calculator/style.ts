@@ -79,6 +79,7 @@ export const OperatorButton = styled(CalculatorButton) <{ gridArea: string }>`
 export const OtherButton = styled(CalculatorButton) <{ gridArea: string }>`
     grid-area: ${props => props.gridArea};
     background-color: #e2e2e2;
+    color: #000;
 
     &:active {
         background-color: ${lighten(0.05, "#e2e2e2")}
