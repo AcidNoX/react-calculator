@@ -3,7 +3,7 @@ import { PayloadAction, createSlice } from '@reduxjs/toolkit';
 export type OperatorType = "+" | "-" | "x" | "÷" | "=";
 
 export interface CalculatorState {
-    calculation: Array<{ operator: OperatorType | null, number: number }>
+    calculation: Array<{ operator: OperatorType | null, number: string }>
 }
 
 const initialState: CalculatorState = {
@@ -31,11 +31,11 @@ const evaluate = (state: CalculatorState) => {
     for (let calc of state.calculation) {
         const previous = state.calculation[state.calculation.indexOf(calc) - 1];
         const operator = previous?.operator || "+";
-        total = doCalculation(total, calc.number, operator);
+        total = doCalculation(total, Number.parseFloat(calc.number), operator);
     }
 
     state.calculation = [
-        { number: total, operator: null }
+        { number: Number.parseFloat(total.toFixed(10)).toString(), operator: null }
     ]
 }
 
@@ -46,7 +46,7 @@ export const calculatorSlice = createSlice({
         numberPress: (state, action: PayloadAction<number>) => {
             // If no entries add new items
             if (state.calculation.length === 0) {
-                state.calculation.push({ operator: null, number: action.payload });
+                state.calculation.push({ operator: null, number: action.payload.toString() });
                 return;
             }
 
@@ -54,15 +54,14 @@ export const calculatorSlice = createSlice({
 
             // If operator add new item
             if (!!last.operator) {
-                state.calculation.push({ operator: null, number: action.payload });
+                state.calculation.push({ operator: null, number: action.payload.toString() });
                 return;
             }
 
-            // Parse to string, append new number and update entry
-            let numberString = last.number.toString();
-            numberString += action.payload.toString();
+            // Only allow 10 numbers total
+            if (last.number.length >= 10) return;
 
-            state.calculation[state.calculation.length - 1].number = Number.parseInt(numberString);
+            last.number += action.payload.toString();
         },
         operatorPress: (state, action: PayloadAction<OperatorType>) => {
             if (action.payload === "=") {
@@ -77,10 +76,45 @@ export const calculatorSlice = createSlice({
 
             // Replace operator
             state.calculation[state.calculation.length - 1].operator = action.payload;
+        },
+        toggleSign: (state) => {
+            if (state.calculation.length < 1) return;
+
+            const last = state.calculation[state.calculation.length - 1];
+
+            last.number = (Number.parseInt(last.number) * -1).toString();
+        },
+        clear: (state) => {
+            state.calculation = [];
+        },
+        decimalPoint: (state) => {
+            const last = state.calculation[state.calculation.length - 1];
+
+            if (!last || last.operator !== null) {
+                state.calculation.push({ operator: null, number: "0." });
+                return;
+            }
+
+            if (last.number.indexOf(".") > -1) return;
+
+            last.number += ".";
+        },
+        percentPress: (state) => {
+            const last = state.calculation[state.calculation.length - 1];
+            const prev = state.calculation[state.calculation.length - 2];
+
+            if (!last || !prev || last.operator !== null) return;
+
+            const prevNumber = Number.parseFloat(prev.number);
+            const currNumber = Number.parseFloat(last.number);
+
+            const newNumber = (prevNumber / 100) * currNumber;
+
+            last.number = newNumber.toString();
         }
     },
 })
 
-export const { numberPress, operatorPress } = calculatorSlice.actions
+export const { numberPress, operatorPress, toggleSign, clear, decimalPoint, percentPress } = calculatorSlice.actions
 
 export const calculatorReducer = calculatorSlice.reducer;

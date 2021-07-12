@@ -1,8 +1,8 @@
 import numberToWord from "number-to-words";
-import React from "react";
+import React, { useMemo } from "react";
 import { useDispatch, useSelector } from 'react-redux';
 
-import { OperatorType, numberPress, operatorPress } from "../../redux/slices/calculator-slice";
+import { OperatorType, clear, decimalPoint, numberPress, operatorPress, percentPress, toggleSign } from "../../redux/slices/calculator-slice";
 import { RootState } from "../../redux/store";
 import { Buttons, Container, DisplayChain, DisplayContainer, DisplayValue, NumberButton, OperatorButton, OtherButton } from "./style";
 
@@ -28,16 +28,27 @@ export const Calculator: React.FC<CalculatorProps> = () => {
     const dispatch = useDispatch();
     const calculation = useSelector((state: RootState) => state.calculator.calculation);
 
+    // Compute display chain
+    const chain = useMemo(() => {
+        // Only show if calc chain greater that one or an operator has been pressed
+        if (calculation.length === 1 && calculation[0].operator === null) return;
+
+        return calculation
+            .map(c => [c.number, c.operator].filter(x => x).join(" "))
+            .join(" ");
+
+    }, [calculation]);
+
     return (
         <Container>
             <DisplayContainer>
-                <DisplayChain>{calculation.map(c => [c.number, c.operator].filter(x => x).join(" ")).join(" ")}</DisplayChain>
+                <DisplayChain>{chain}</DisplayChain>
                 <DisplayValue>{calculation.length > 0 ? calculation[calculation.length - 1].number : 0}</DisplayValue>
             </DisplayContainer>
             <Buttons>
-                <OtherButton gridArea="ac">AC</OtherButton>
-                <OtherButton gridArea="plusminus">+/-</OtherButton>
-                <OtherButton gridArea="percent">%</OtherButton>
+                <OtherButton gridArea="ac" onClick={() => dispatch(clear())}>AC</OtherButton>
+                <OtherButton gridArea="plusminus" onClick={() => dispatch(toggleSign())}>+/-</OtherButton>
+                <OtherButton gridArea="percent" onClick={() => dispatch(percentPress())}>%</OtherButton>
                 {operators.map(({ operator, area }) => (
                     <OperatorButton
                         key={operator}
@@ -54,7 +65,7 @@ export const Calculator: React.FC<CalculatorProps> = () => {
                         {number}
                     </NumberButton>
                 ))}
-                <NumberButton gridArea="dot">.</NumberButton>
+                <NumberButton gridArea="dot" onClick={() => dispatch(decimalPoint())}>.</NumberButton>
             </Buttons>
         </Container>
 
